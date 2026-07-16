@@ -27,12 +27,12 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  cookie: string;
+  sessionId: string;
   clientName: string;
 }
 
 export interface LogoutRequest {
-  cookie: string;
+  sessionId: string;
 }
 
 export interface AuthResponse {
@@ -122,13 +122,13 @@ export const LoginRequest: MessageFns<LoginRequest> = {
 };
 
 function createBaseLoginResponse(): LoginResponse {
-  return { cookie: "", clientName: "" };
+  return { sessionId: "", clientName: "" };
 }
 
 export const LoginResponse: MessageFns<LoginResponse> = {
   encode(message: LoginResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cookie !== "") {
-      writer.uint32(10).string(message.cookie);
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
     }
     if (message.clientName !== "") {
       writer.uint32(18).string(message.clientName);
@@ -148,7 +148,7 @@ export const LoginResponse: MessageFns<LoginResponse> = {
             break;
           }
 
-          message.cookie = reader.string();
+          message.sessionId = reader.string();
           continue;
         }
         case 2: {
@@ -170,7 +170,11 @@ export const LoginResponse: MessageFns<LoginResponse> = {
 
   fromJSON(object: any): LoginResponse {
     return {
-      cookie: isSet(object.cookie) ? globalThis.String(object.cookie) : "",
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
       clientName: isSet(object.clientName)
         ? globalThis.String(object.clientName)
         : isSet(object.client_name)
@@ -181,8 +185,8 @@ export const LoginResponse: MessageFns<LoginResponse> = {
 
   toJSON(message: LoginResponse): unknown {
     const obj: any = {};
-    if (message.cookie !== "") {
-      obj.cookie = message.cookie;
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
     }
     if (message.clientName !== "") {
       obj.clientName = message.clientName;
@@ -195,20 +199,20 @@ export const LoginResponse: MessageFns<LoginResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<LoginResponse>, I>>(object: I): LoginResponse {
     const message = createBaseLoginResponse();
-    message.cookie = object.cookie ?? "";
+    message.sessionId = object.sessionId ?? "";
     message.clientName = object.clientName ?? "";
     return message;
   },
 };
 
 function createBaseLogoutRequest(): LogoutRequest {
-  return { cookie: "" };
+  return { sessionId: "" };
 }
 
 export const LogoutRequest: MessageFns<LogoutRequest> = {
   encode(message: LogoutRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cookie !== "") {
-      writer.uint32(10).string(message.cookie);
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
     }
     return writer;
   },
@@ -225,7 +229,7 @@ export const LogoutRequest: MessageFns<LogoutRequest> = {
             break;
           }
 
-          message.cookie = reader.string();
+          message.sessionId = reader.string();
           continue;
         }
       }
@@ -238,13 +242,19 @@ export const LogoutRequest: MessageFns<LogoutRequest> = {
   },
 
   fromJSON(object: any): LogoutRequest {
-    return { cookie: isSet(object.cookie) ? globalThis.String(object.cookie) : "" };
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+    };
   },
 
   toJSON(message: LogoutRequest): unknown {
     const obj: any = {};
-    if (message.cookie !== "") {
-      obj.cookie = message.cookie;
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
     }
     return obj;
   },
@@ -254,7 +264,7 @@ export const LogoutRequest: MessageFns<LogoutRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<LogoutRequest>, I>>(object: I): LogoutRequest {
     const message = createBaseLogoutRequest();
-    message.cookie = object.cookie ?? "";
+    message.sessionId = object.sessionId ?? "";
     return message;
   },
 };

@@ -19,68 +19,76 @@ import {
   type UntypedServiceImplementation,
 } from "@grpc/grpc-js";
 
-export const protobufPackage = "";
+export const protobufPackage = "books";
 
 export enum Category {
-  CATEGORY_FICTION = 0,
-  CATEGORY_FANTASY = 1,
-  CATEGORY_SCIENCE_FICTION = 2,
-  CATEGORY_MYSTERY = 3,
-  CATEGORY_THRILLER = 4,
-  CATEGORY_ROMANCE = 5,
-  CATEGORY_HORROR = 6,
-  CATEGORY_ADVENTURE = 7,
-  CATEGORY_BIOGRAPHY = 8,
-  CATEGORY_SCIENCE = 9,
-  CATEGORY_TECHNOLOGY = 10,
-  CATEGORY_SELF_HELP = 11,
-  CATEGORY_CHILDREN = 12,
-  CATEGORY_COMICS = 13,
+  CATEGORY_UNSPECIFIED = 0,
+  CATEGORY_FICTION = 1,
+  CATEGORY_FANTASY = 2,
+  CATEGORY_SCIENCE_FICTION = 3,
+  CATEGORY_MYSTERY = 4,
+  CATEGORY_THRILLER = 5,
+  CATEGORY_ROMANCE = 6,
+  CATEGORY_HORROR = 7,
+  CATEGORY_ADVENTURE = 8,
+  CATEGORY_HISTORY = 9,
+  CATEGORY_BIOGRAPHY = 10,
+  CATEGORY_SCIENCE = 11,
+  CATEGORY_TECHNOLOGY = 12,
+  CATEGORY_SELF_HELP = 13,
+  CATEGORY_CHILDREN = 14,
+  CATEGORY_COMICS = 15,
   UNRECOGNIZED = -1,
 }
 
 export function categoryFromJSON(object: any): Category {
   switch (object) {
     case 0:
+    case "CATEGORY_UNSPECIFIED":
+      return Category.CATEGORY_UNSPECIFIED;
+    case 1:
     case "CATEGORY_FICTION":
       return Category.CATEGORY_FICTION;
-    case 1:
+    case 2:
     case "CATEGORY_FANTASY":
       return Category.CATEGORY_FANTASY;
-    case 2:
+    case 3:
     case "CATEGORY_SCIENCE_FICTION":
       return Category.CATEGORY_SCIENCE_FICTION;
-    case 3:
+    case 4:
     case "CATEGORY_MYSTERY":
       return Category.CATEGORY_MYSTERY;
-    case 4:
+    case 5:
     case "CATEGORY_THRILLER":
       return Category.CATEGORY_THRILLER;
-    case 5:
+    case 6:
     case "CATEGORY_ROMANCE":
       return Category.CATEGORY_ROMANCE;
-    case 6:
+    case 7:
     case "CATEGORY_HORROR":
       return Category.CATEGORY_HORROR;
-    case 7:
+    case 8:
     case "CATEGORY_ADVENTURE":
       return Category.CATEGORY_ADVENTURE;
-    case 8:
+    case 9:
+    case "CATEGORY_HISTORY":
+      return Category.CATEGORY_HISTORY;
+    case 10:
     case "CATEGORY_BIOGRAPHY":
       return Category.CATEGORY_BIOGRAPHY;
-    case 9:
+    case 11:
     case "CATEGORY_SCIENCE":
       return Category.CATEGORY_SCIENCE;
-    case 10:
+    case 12:
     case "CATEGORY_TECHNOLOGY":
       return Category.CATEGORY_TECHNOLOGY;
-    case 11:
+    case 13:
     case "CATEGORY_SELF_HELP":
       return Category.CATEGORY_SELF_HELP;
-    case 12:
+    case 14:
     case "CATEGORY_CHILDREN":
       return Category.CATEGORY_CHILDREN;
-    case 13:
+    case 15:
     case "CATEGORY_COMICS":
       return Category.CATEGORY_COMICS;
     case -1:
@@ -92,6 +100,8 @@ export function categoryFromJSON(object: any): Category {
 
 export function categoryToJSON(object: Category): string {
   switch (object) {
+    case Category.CATEGORY_UNSPECIFIED:
+      return "CATEGORY_UNSPECIFIED";
     case Category.CATEGORY_FICTION:
       return "CATEGORY_FICTION";
     case Category.CATEGORY_FANTASY:
@@ -108,6 +118,8 @@ export function categoryToJSON(object: Category): string {
       return "CATEGORY_HORROR";
     case Category.CATEGORY_ADVENTURE:
       return "CATEGORY_ADVENTURE";
+    case Category.CATEGORY_HISTORY:
+      return "CATEGORY_HISTORY";
     case Category.CATEGORY_BIOGRAPHY:
       return "CATEGORY_BIOGRAPHY";
     case Category.CATEGORY_SCIENCE:
@@ -131,15 +143,16 @@ export interface Book {
   synopsis: string;
   title: string;
   author: string;
-  price: number;
+  priceInCents: number;
   stock: number;
-  category: Category;
+  categories: Category[];
 }
 
 export interface GetAllBooksRequest {
-  cookie: string;
-  category?: Category | undefined;
-  price?: number | undefined;
+  sessionId: string;
+  category: Category[];
+  minPriceInCents?: number | undefined;
+  maxPriceInCents?: number | undefined;
 }
 
 export interface GetAllBooksResponse {
@@ -147,7 +160,7 @@ export interface GetAllBooksResponse {
 }
 
 export interface GetOneBookRequest {
-  cookie: string;
+  sessionId: string;
   bookId: string;
 }
 
@@ -156,7 +169,7 @@ export interface GetOneBookResponse {
 }
 
 export interface BuyBookRequest {
-  cookie: string;
+  sessionId: string;
   bookId: string;
   quantity: number;
 }
@@ -166,9 +179,11 @@ export interface BuyBookResponse {
   clientId: string;
   bookId: string;
   bookTitle: string;
-  invoiceTotal: number;
+  invoiceTotalInCents: number;
   amountOfBooks: number;
   clientEmail: string;
+  remainingStock: number;
+  unitPriceInCents: number;
 }
 
 export interface RestockBookRequest {
@@ -182,7 +197,7 @@ export interface RestockBookResponse {
 }
 
 function createBaseBook(): Book {
-  return { id: "", synopsis: "", title: "", author: "", price: 0, stock: 0, category: 0 };
+  return { id: "", synopsis: "", title: "", author: "", priceInCents: 0, stock: 0, categories: [] };
 }
 
 export const Book: MessageFns<Book> = {
@@ -199,15 +214,17 @@ export const Book: MessageFns<Book> = {
     if (message.author !== "") {
       writer.uint32(34).string(message.author);
     }
-    if (message.price !== 0) {
-      writer.uint32(41).double(message.price);
+    if (message.priceInCents !== 0) {
+      writer.uint32(40).int64(message.priceInCents);
     }
     if (message.stock !== 0) {
       writer.uint32(48).int32(message.stock);
     }
-    if (message.category !== 0) {
-      writer.uint32(56).int32(message.category);
+    writer.uint32(58).fork();
+    for (const v of message.categories) {
+      writer.int32(v);
     }
+    writer.join();
     return writer;
   },
 
@@ -251,11 +268,11 @@ export const Book: MessageFns<Book> = {
           continue;
         }
         case 5: {
-          if (tag !== 41) {
+          if (tag !== 40) {
             break;
           }
 
-          message.price = reader.double();
+          message.priceInCents = longToNumber(reader.int64());
           continue;
         }
         case 6: {
@@ -267,12 +284,22 @@ export const Book: MessageFns<Book> = {
           continue;
         }
         case 7: {
-          if (tag !== 56) {
-            break;
+          if (tag === 56) {
+            message.categories.push(reader.int32() as any);
+
+            continue;
           }
 
-          message.category = reader.int32() as any;
-          continue;
+          if (tag === 58) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.categories.push(reader.int32() as any);
+            }
+
+            continue;
+          }
+
+          break;
         }
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -289,9 +316,15 @@ export const Book: MessageFns<Book> = {
       synopsis: isSet(object.synopsis) ? globalThis.String(object.synopsis) : "",
       title: isSet(object.title) ? globalThis.String(object.title) : "",
       author: isSet(object.author) ? globalThis.String(object.author) : "",
-      price: isSet(object.price) ? globalThis.Number(object.price) : 0,
+      priceInCents: isSet(object.priceInCents)
+        ? globalThis.Number(object.priceInCents)
+        : isSet(object.price_in_cents)
+        ? globalThis.Number(object.price_in_cents)
+        : 0,
       stock: isSet(object.stock) ? globalThis.Number(object.stock) : 0,
-      category: isSet(object.category) ? categoryFromJSON(object.category) : 0,
+      categories: globalThis.Array.isArray(object?.categories)
+        ? object.categories.map((e: any) => categoryFromJSON(e))
+        : [],
     };
   },
 
@@ -309,14 +342,14 @@ export const Book: MessageFns<Book> = {
     if (message.author !== "") {
       obj.author = message.author;
     }
-    if (message.price !== 0) {
-      obj.price = message.price;
+    if (message.priceInCents !== 0) {
+      obj.priceInCents = Math.round(message.priceInCents);
     }
     if (message.stock !== 0) {
       obj.stock = Math.round(message.stock);
     }
-    if (message.category !== 0) {
-      obj.category = categoryToJSON(message.category);
+    if (message.categories?.length) {
+      obj.categories = message.categories.map((e) => categoryToJSON(e));
     }
     return obj;
   },
@@ -330,27 +363,32 @@ export const Book: MessageFns<Book> = {
     message.synopsis = object.synopsis ?? "";
     message.title = object.title ?? "";
     message.author = object.author ?? "";
-    message.price = object.price ?? 0;
+    message.priceInCents = object.priceInCents ?? 0;
     message.stock = object.stock ?? 0;
-    message.category = object.category ?? 0;
+    message.categories = object.categories?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseGetAllBooksRequest(): GetAllBooksRequest {
-  return { cookie: "", category: undefined, price: undefined };
+  return { sessionId: "", category: [], minPriceInCents: undefined, maxPriceInCents: undefined };
 }
 
 export const GetAllBooksRequest: MessageFns<GetAllBooksRequest> = {
   encode(message: GetAllBooksRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cookie !== "") {
-      writer.uint32(10).string(message.cookie);
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
     }
-    if (message.category !== undefined) {
-      writer.uint32(16).int32(message.category);
+    writer.uint32(18).fork();
+    for (const v of message.category) {
+      writer.int32(v);
     }
-    if (message.price !== undefined) {
-      writer.uint32(25).double(message.price);
+    writer.join();
+    if (message.minPriceInCents !== undefined) {
+      writer.uint32(24).int64(message.minPriceInCents);
+    }
+    if (message.maxPriceInCents !== undefined) {
+      writer.uint32(32).int64(message.maxPriceInCents);
     }
     return writer;
   },
@@ -367,23 +405,41 @@ export const GetAllBooksRequest: MessageFns<GetAllBooksRequest> = {
             break;
           }
 
-          message.cookie = reader.string();
+          message.sessionId = reader.string();
           continue;
         }
         case 2: {
-          if (tag !== 16) {
-            break;
+          if (tag === 16) {
+            message.category.push(reader.int32() as any);
+
+            continue;
           }
 
-          message.category = reader.int32() as any;
-          continue;
+          if (tag === 18) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.category.push(reader.int32() as any);
+            }
+
+            continue;
+          }
+
+          break;
         }
         case 3: {
-          if (tag !== 25) {
+          if (tag !== 24) {
             break;
           }
 
-          message.price = reader.double();
+          message.minPriceInCents = longToNumber(reader.int64());
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.maxPriceInCents = longToNumber(reader.int64());
           continue;
         }
       }
@@ -397,22 +453,38 @@ export const GetAllBooksRequest: MessageFns<GetAllBooksRequest> = {
 
   fromJSON(object: any): GetAllBooksRequest {
     return {
-      cookie: isSet(object.cookie) ? globalThis.String(object.cookie) : "",
-      category: isSet(object.category) ? categoryFromJSON(object.category) : undefined,
-      price: isSet(object.price) ? globalThis.Number(object.price) : undefined,
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+      category: globalThis.Array.isArray(object?.category) ? object.category.map((e: any) => categoryFromJSON(e)) : [],
+      minPriceInCents: isSet(object.minPriceInCents)
+        ? globalThis.Number(object.minPriceInCents)
+        : isSet(object.min_price_in_cents)
+        ? globalThis.Number(object.min_price_in_cents)
+        : undefined,
+      maxPriceInCents: isSet(object.maxPriceInCents)
+        ? globalThis.Number(object.maxPriceInCents)
+        : isSet(object.max_price_in_cents)
+        ? globalThis.Number(object.max_price_in_cents)
+        : undefined,
     };
   },
 
   toJSON(message: GetAllBooksRequest): unknown {
     const obj: any = {};
-    if (message.cookie !== "") {
-      obj.cookie = message.cookie;
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
     }
-    if (message.category !== undefined) {
-      obj.category = categoryToJSON(message.category);
+    if (message.category?.length) {
+      obj.category = message.category.map((e) => categoryToJSON(e));
     }
-    if (message.price !== undefined) {
-      obj.price = message.price;
+    if (message.minPriceInCents !== undefined) {
+      obj.minPriceInCents = Math.round(message.minPriceInCents);
+    }
+    if (message.maxPriceInCents !== undefined) {
+      obj.maxPriceInCents = Math.round(message.maxPriceInCents);
     }
     return obj;
   },
@@ -422,9 +494,10 @@ export const GetAllBooksRequest: MessageFns<GetAllBooksRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetAllBooksRequest>, I>>(object: I): GetAllBooksRequest {
     const message = createBaseGetAllBooksRequest();
-    message.cookie = object.cookie ?? "";
-    message.category = object.category ?? undefined;
-    message.price = object.price ?? undefined;
+    message.sessionId = object.sessionId ?? "";
+    message.category = object.category?.map((e) => e) || [];
+    message.minPriceInCents = object.minPriceInCents ?? undefined;
+    message.maxPriceInCents = object.maxPriceInCents ?? undefined;
     return message;
   },
 };
@@ -488,13 +561,13 @@ export const GetAllBooksResponse: MessageFns<GetAllBooksResponse> = {
 };
 
 function createBaseGetOneBookRequest(): GetOneBookRequest {
-  return { cookie: "", bookId: "" };
+  return { sessionId: "", bookId: "" };
 }
 
 export const GetOneBookRequest: MessageFns<GetOneBookRequest> = {
   encode(message: GetOneBookRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cookie !== "") {
-      writer.uint32(10).string(message.cookie);
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
     }
     if (message.bookId !== "") {
       writer.uint32(18).string(message.bookId);
@@ -514,7 +587,7 @@ export const GetOneBookRequest: MessageFns<GetOneBookRequest> = {
             break;
           }
 
-          message.cookie = reader.string();
+          message.sessionId = reader.string();
           continue;
         }
         case 2: {
@@ -536,7 +609,11 @@ export const GetOneBookRequest: MessageFns<GetOneBookRequest> = {
 
   fromJSON(object: any): GetOneBookRequest {
     return {
-      cookie: isSet(object.cookie) ? globalThis.String(object.cookie) : "",
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
       bookId: isSet(object.bookId)
         ? globalThis.String(object.bookId)
         : isSet(object.book_id)
@@ -547,8 +624,8 @@ export const GetOneBookRequest: MessageFns<GetOneBookRequest> = {
 
   toJSON(message: GetOneBookRequest): unknown {
     const obj: any = {};
-    if (message.cookie !== "") {
-      obj.cookie = message.cookie;
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
     }
     if (message.bookId !== "") {
       obj.bookId = message.bookId;
@@ -561,7 +638,7 @@ export const GetOneBookRequest: MessageFns<GetOneBookRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetOneBookRequest>, I>>(object: I): GetOneBookRequest {
     const message = createBaseGetOneBookRequest();
-    message.cookie = object.cookie ?? "";
+    message.sessionId = object.sessionId ?? "";
     message.bookId = object.bookId ?? "";
     return message;
   },
@@ -626,13 +703,13 @@ export const GetOneBookResponse: MessageFns<GetOneBookResponse> = {
 };
 
 function createBaseBuyBookRequest(): BuyBookRequest {
-  return { cookie: "", bookId: "", quantity: 0 };
+  return { sessionId: "", bookId: "", quantity: 0 };
 }
 
 export const BuyBookRequest: MessageFns<BuyBookRequest> = {
   encode(message: BuyBookRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cookie !== "") {
-      writer.uint32(10).string(message.cookie);
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
     }
     if (message.bookId !== "") {
       writer.uint32(18).string(message.bookId);
@@ -655,7 +732,7 @@ export const BuyBookRequest: MessageFns<BuyBookRequest> = {
             break;
           }
 
-          message.cookie = reader.string();
+          message.sessionId = reader.string();
           continue;
         }
         case 2: {
@@ -685,7 +762,11 @@ export const BuyBookRequest: MessageFns<BuyBookRequest> = {
 
   fromJSON(object: any): BuyBookRequest {
     return {
-      cookie: isSet(object.cookie) ? globalThis.String(object.cookie) : "",
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
       bookId: isSet(object.bookId)
         ? globalThis.String(object.bookId)
         : isSet(object.book_id)
@@ -697,8 +778,8 @@ export const BuyBookRequest: MessageFns<BuyBookRequest> = {
 
   toJSON(message: BuyBookRequest): unknown {
     const obj: any = {};
-    if (message.cookie !== "") {
-      obj.cookie = message.cookie;
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
     }
     if (message.bookId !== "") {
       obj.bookId = message.bookId;
@@ -714,7 +795,7 @@ export const BuyBookRequest: MessageFns<BuyBookRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<BuyBookRequest>, I>>(object: I): BuyBookRequest {
     const message = createBaseBuyBookRequest();
-    message.cookie = object.cookie ?? "";
+    message.sessionId = object.sessionId ?? "";
     message.bookId = object.bookId ?? "";
     message.quantity = object.quantity ?? 0;
     return message;
@@ -722,7 +803,17 @@ export const BuyBookRequest: MessageFns<BuyBookRequest> = {
 };
 
 function createBaseBuyBookResponse(): BuyBookResponse {
-  return { invoiceId: "", clientId: "", bookId: "", bookTitle: "", invoiceTotal: 0, amountOfBooks: 0, clientEmail: "" };
+  return {
+    invoiceId: "",
+    clientId: "",
+    bookId: "",
+    bookTitle: "",
+    invoiceTotalInCents: 0,
+    amountOfBooks: 0,
+    clientEmail: "",
+    remainingStock: 0,
+    unitPriceInCents: 0,
+  };
 }
 
 export const BuyBookResponse: MessageFns<BuyBookResponse> = {
@@ -739,14 +830,20 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
     if (message.bookTitle !== "") {
       writer.uint32(34).string(message.bookTitle);
     }
-    if (message.invoiceTotal !== 0) {
-      writer.uint32(41).double(message.invoiceTotal);
+    if (message.invoiceTotalInCents !== 0) {
+      writer.uint32(40).int64(message.invoiceTotalInCents);
     }
     if (message.amountOfBooks !== 0) {
       writer.uint32(48).int32(message.amountOfBooks);
     }
     if (message.clientEmail !== "") {
       writer.uint32(58).string(message.clientEmail);
+    }
+    if (message.remainingStock !== 0) {
+      writer.uint32(64).int32(message.remainingStock);
+    }
+    if (message.unitPriceInCents !== 0) {
+      writer.uint32(72).int64(message.unitPriceInCents);
     }
     return writer;
   },
@@ -791,11 +888,11 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
           continue;
         }
         case 5: {
-          if (tag !== 41) {
+          if (tag !== 40) {
             break;
           }
 
-          message.invoiceTotal = reader.double();
+          message.invoiceTotalInCents = longToNumber(reader.int64());
           continue;
         }
         case 6: {
@@ -812,6 +909,22 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
           }
 
           message.clientEmail = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.remainingStock = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.unitPriceInCents = longToNumber(reader.int64());
           continue;
         }
       }
@@ -845,10 +958,10 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
         : isSet(object.book_title)
         ? globalThis.String(object.book_title)
         : "",
-      invoiceTotal: isSet(object.invoiceTotal)
-        ? globalThis.Number(object.invoiceTotal)
-        : isSet(object.invoice_total)
-        ? globalThis.Number(object.invoice_total)
+      invoiceTotalInCents: isSet(object.invoiceTotalInCents)
+        ? globalThis.Number(object.invoiceTotalInCents)
+        : isSet(object.invoice_total_in_cents)
+        ? globalThis.Number(object.invoice_total_in_cents)
         : 0,
       amountOfBooks: isSet(object.amountOfBooks)
         ? globalThis.Number(object.amountOfBooks)
@@ -860,6 +973,16 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
         : isSet(object.client_email)
         ? globalThis.String(object.client_email)
         : "",
+      remainingStock: isSet(object.remainingStock)
+        ? globalThis.Number(object.remainingStock)
+        : isSet(object.remaining_stock)
+        ? globalThis.Number(object.remaining_stock)
+        : 0,
+      unitPriceInCents: isSet(object.unitPriceInCents)
+        ? globalThis.Number(object.unitPriceInCents)
+        : isSet(object.unit_price_in_cents)
+        ? globalThis.Number(object.unit_price_in_cents)
+        : 0,
     };
   },
 
@@ -877,14 +1000,20 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
     if (message.bookTitle !== "") {
       obj.bookTitle = message.bookTitle;
     }
-    if (message.invoiceTotal !== 0) {
-      obj.invoiceTotal = message.invoiceTotal;
+    if (message.invoiceTotalInCents !== 0) {
+      obj.invoiceTotalInCents = Math.round(message.invoiceTotalInCents);
     }
     if (message.amountOfBooks !== 0) {
       obj.amountOfBooks = Math.round(message.amountOfBooks);
     }
     if (message.clientEmail !== "") {
       obj.clientEmail = message.clientEmail;
+    }
+    if (message.remainingStock !== 0) {
+      obj.remainingStock = Math.round(message.remainingStock);
+    }
+    if (message.unitPriceInCents !== 0) {
+      obj.unitPriceInCents = Math.round(message.unitPriceInCents);
     }
     return obj;
   },
@@ -898,9 +1027,11 @@ export const BuyBookResponse: MessageFns<BuyBookResponse> = {
     message.clientId = object.clientId ?? "";
     message.bookId = object.bookId ?? "";
     message.bookTitle = object.bookTitle ?? "";
-    message.invoiceTotal = object.invoiceTotal ?? 0;
+    message.invoiceTotalInCents = object.invoiceTotalInCents ?? 0;
     message.amountOfBooks = object.amountOfBooks ?? 0;
     message.clientEmail = object.clientEmail ?? "";
+    message.remainingStock = object.remainingStock ?? 0;
+    message.unitPriceInCents = object.unitPriceInCents ?? 0;
     return message;
   },
 };
@@ -1076,7 +1207,7 @@ export const RestockBookResponse: MessageFns<RestockBookResponse> = {
 export type BookServiceService = typeof BookServiceService;
 export const BookServiceService = {
   getAllBooks: {
-    path: "/BookService/GetAllBooks" as const,
+    path: "/books.BookService/GetAllBooks" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetAllBooksRequest): Buffer => Buffer.from(GetAllBooksRequest.encode(value).finish()),
@@ -1085,7 +1216,7 @@ export const BookServiceService = {
     responseDeserialize: (value: Buffer): GetAllBooksResponse => GetAllBooksResponse.decode(value),
   },
   getOneBook: {
-    path: "/BookService/GetOneBook" as const,
+    path: "/books.BookService/GetOneBook" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetOneBookRequest): Buffer => Buffer.from(GetOneBookRequest.encode(value).finish()),
@@ -1094,7 +1225,7 @@ export const BookServiceService = {
     responseDeserialize: (value: Buffer): GetOneBookResponse => GetOneBookResponse.decode(value),
   },
   buyBook: {
-    path: "/BookService/BuyBook" as const,
+    path: "/books.BookService/BuyBook" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: BuyBookRequest): Buffer => Buffer.from(BuyBookRequest.encode(value).finish()),
@@ -1103,7 +1234,7 @@ export const BookServiceService = {
     responseDeserialize: (value: Buffer): BuyBookResponse => BuyBookResponse.decode(value),
   },
   restockBook: {
-    path: "/BookService/RestockBook" as const,
+    path: "/books.BookService/RestockBook" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RestockBookRequest): Buffer => Buffer.from(RestockBookRequest.encode(value).finish()),
@@ -1183,7 +1314,7 @@ export interface BookServiceClient extends Client {
   ): ClientUnaryCall;
 }
 
-export const BookServiceClient = makeGenericClientConstructor(BookServiceService, "BookService") as unknown as {
+export const BookServiceClient = makeGenericClientConstructor(BookServiceService, "books.BookService") as unknown as {
   new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): BookServiceClient;
   service: typeof BookServiceService;
   serviceName: string;
@@ -1200,6 +1331,17 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
+  }
+  return num;
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

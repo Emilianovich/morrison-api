@@ -22,23 +22,23 @@ import {
 export const protobufPackage = "clients";
 
 export interface GetClientRequest {
-  cookie: string;
+  sessionId: string;
 }
 
 export interface GetClientResponse {
   fullName: string;
   email: string;
-  moneyAmount: number;
+  moneyAmountInCents: number;
 }
 
 function createBaseGetClientRequest(): GetClientRequest {
-  return { cookie: "" };
+  return { sessionId: "" };
 }
 
 export const GetClientRequest: MessageFns<GetClientRequest> = {
   encode(message: GetClientRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cookie !== "") {
-      writer.uint32(10).string(message.cookie);
+    if (message.sessionId !== "") {
+      writer.uint32(10).string(message.sessionId);
     }
     return writer;
   },
@@ -55,7 +55,7 @@ export const GetClientRequest: MessageFns<GetClientRequest> = {
             break;
           }
 
-          message.cookie = reader.string();
+          message.sessionId = reader.string();
           continue;
         }
       }
@@ -68,13 +68,19 @@ export const GetClientRequest: MessageFns<GetClientRequest> = {
   },
 
   fromJSON(object: any): GetClientRequest {
-    return { cookie: isSet(object.cookie) ? globalThis.String(object.cookie) : "" };
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+        ? globalThis.String(object.session_id)
+        : "",
+    };
   },
 
   toJSON(message: GetClientRequest): unknown {
     const obj: any = {};
-    if (message.cookie !== "") {
-      obj.cookie = message.cookie;
+    if (message.sessionId !== "") {
+      obj.sessionId = message.sessionId;
     }
     return obj;
   },
@@ -84,13 +90,13 @@ export const GetClientRequest: MessageFns<GetClientRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetClientRequest>, I>>(object: I): GetClientRequest {
     const message = createBaseGetClientRequest();
-    message.cookie = object.cookie ?? "";
+    message.sessionId = object.sessionId ?? "";
     return message;
   },
 };
 
 function createBaseGetClientResponse(): GetClientResponse {
-  return { fullName: "", email: "", moneyAmount: 0 };
+  return { fullName: "", email: "", moneyAmountInCents: 0 };
 }
 
 export const GetClientResponse: MessageFns<GetClientResponse> = {
@@ -101,8 +107,8 @@ export const GetClientResponse: MessageFns<GetClientResponse> = {
     if (message.email !== "") {
       writer.uint32(18).string(message.email);
     }
-    if (message.moneyAmount !== 0) {
-      writer.uint32(25).double(message.moneyAmount);
+    if (message.moneyAmountInCents !== 0) {
+      writer.uint32(24).int64(message.moneyAmountInCents);
     }
     return writer;
   },
@@ -131,11 +137,11 @@ export const GetClientResponse: MessageFns<GetClientResponse> = {
           continue;
         }
         case 3: {
-          if (tag !== 25) {
+          if (tag !== 24) {
             break;
           }
 
-          message.moneyAmount = reader.double();
+          message.moneyAmountInCents = longToNumber(reader.int64());
           continue;
         }
       }
@@ -155,10 +161,10 @@ export const GetClientResponse: MessageFns<GetClientResponse> = {
         ? globalThis.String(object.full_name)
         : "",
       email: isSet(object.email) ? globalThis.String(object.email) : "",
-      moneyAmount: isSet(object.moneyAmount)
-        ? globalThis.Number(object.moneyAmount)
-        : isSet(object.money_amount)
-        ? globalThis.Number(object.money_amount)
+      moneyAmountInCents: isSet(object.moneyAmountInCents)
+        ? globalThis.Number(object.moneyAmountInCents)
+        : isSet(object.money_amount_in_cents)
+        ? globalThis.Number(object.money_amount_in_cents)
         : 0,
     };
   },
@@ -171,8 +177,8 @@ export const GetClientResponse: MessageFns<GetClientResponse> = {
     if (message.email !== "") {
       obj.email = message.email;
     }
-    if (message.moneyAmount !== 0) {
-      obj.moneyAmount = message.moneyAmount;
+    if (message.moneyAmountInCents !== 0) {
+      obj.moneyAmountInCents = Math.round(message.moneyAmountInCents);
     }
     return obj;
   },
@@ -184,7 +190,7 @@ export const GetClientResponse: MessageFns<GetClientResponse> = {
     const message = createBaseGetClientResponse();
     message.fullName = object.fullName ?? "";
     message.email = object.email ?? "";
-    message.moneyAmount = object.moneyAmount ?? 0;
+    message.moneyAmountInCents = object.moneyAmountInCents ?? 0;
     return message;
   },
 };
@@ -244,6 +250,17 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
+  }
+  return num;
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
