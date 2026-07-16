@@ -1,4 +1,7 @@
 allowBuilds:
+  cpu-features: true
   esbuild: false
   grpc-tools: true
   protobufjs: true
+  puppeteer: true
+  ssh2: true

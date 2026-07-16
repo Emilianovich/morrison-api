@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-import type {MiddlewareVars} from "./types/middleware-vars.js";
+import type { MiddlewareVars } from "./types/middleware-vars.js";
 import {HTTPException} from "hono/http-exception";
 import generalMiddleware from "./middlewares/general.js";
 
@@ -20,8 +20,8 @@ app.onError((err, ctx) => {
 
 app.use(generalMiddleware)
 
-app.get('/health', (c) => {
-  return c.text('API REST en buen estado')
+app.get('/health', (ctx) => {
+  return ctx.json('API REST en buen estado')
 })
 
 serve({
