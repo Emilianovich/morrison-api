@@ -1,19 +1,18 @@
-import puppeteer, { Browser, Page } from "puppeteer/src/puppeteer.js";
+import puppeteer, { type Browser, type Page } from "puppeteer"
 
 class BrowserService {
-    private browser!: Browser;
-    constructor() {}
-    private async getBrowser() {
-        this.browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
-    }
-    async getPage() : Promise<Page> {
-        await this.getBrowser();
-        return this.browser.newPage()
-    }
-    async close() {
-        await this.getBrowser()
-        return this.browser.close()
-    }
+  private browser?: Browser
+
+  async getPage(): Promise<Page> {
+    this.browser ??= await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] })
+    return this.browser.newPage()
+  }
+
+  async close(): Promise<void> {
+    if (!this.browser) return
+    await this.browser.close()
+    this.browser = undefined
+  }
 }
 
-export default BrowserService;
+export default BrowserService

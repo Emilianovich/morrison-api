@@ -1,0 +1,41 @@
+services:
+  morrison-api:
+    environment:
+      TZ: America/Panama
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: morrison-api:1.0.0
+    container_name: morrison-api
+    env_file:
+      - .env
+    ports:
+      - "3124:3124"
+      - "3113:3113"
+    networks:
+      - morrison-network
+    restart: unless-stopped
+
+  morrison-smtp:
+    image: mailhog/mailhog:v1.0.1
+    container_name: morrison-smtp
+    ports:
+      - "8025:8025"
+    networks:
+      - morrison-network
+    restart: unless-stopped
+
+  morrison-sftp:
+    image: atmoz/sftp
+    container_name: morrison-sftp
+    command: logistica:password:1001
+    volumes:
+      - ./sftp_invoices:/home/logistica/invoices
+    networks:
+      - morrison-network
+    restart: unless-stopped
+
+networks:
+  morrison-network:
+    external: true
+    name: morrison-network

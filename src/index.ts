@@ -1,32 +1,56 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import type { MiddlewareVars } from "./types/middleware-vars.js";
-import {HTTPException} from "hono/http-exception";
-import generalMiddleware from "./middlewares/general.js";
+import { serve } from "@hono/node-server"
+import { Hono } from "hono"
+import { HTTPException } from "hono/http-exception"
+import authRoutes from "./routes/auth.js"
+import bookRoutes from "./routes/books.js"
+import clientRoutes from "./routes/clients.js"
+import env from "./helpers/env.js"
+import generalMiddleware from "./middlewares/general.js"
+import { startTcpServer } from "./servers/tcp.js"
+import type { MiddlewareVars } from "./types/middleware-vars.js"
+import {
+  RequestValidationError,
+} from "./middlewares/zod.js"
 
 const app = new Hono<MiddlewareVars>()
 
-app.onError((err, ctx) => {
-  if (err instanceof HTTPException) {
-    return ctx.json({
-      errors: err.cause ?? err.message
-    })
+app.onError((error, ctx) => {
+  if (error instanceof RequestValidationError) {
+    return ctx.json(
+      {
+        errors: error.validationErrors,
+      },
+      400,
+    )
   }
-  ctx.status(500)
-  return ctx.json({
-    errors: "Error interno del servidor, intente nuevamente"
-  })
+
+  if (error instanceof HTTPException) {
+    return ctx.json(
+      {
+        errors: error.message,
+      },
+      error.status,
+    )
+  }
+
+  console.error(error)
+
+  return ctx.json(
+    {
+      errors: "Error interno del servidor, intente nuevamente",
+    },
+    500,
+  )
 })
 
 app.use(generalMiddleware)
+app.get("/health", (ctx) => ctx.json("API REST en buen estado"))
+app.route("/auth", authRoutes)
+app.route("/clients", clientRoutes)
+app.route("/books", bookRoutes)
 
-app.get('/health', (ctx) => {
-  return ctx.json('API REST en buen estado')
+serve({ fetch: app.fetch, port: env.HTTP_PORT, hostname: "0.0.0.0" }, (info) => {
+  console.log(`HTTP server listening on 0.0.0.0:${info.port}`)
 })
 
-serve({
-  fetch: app.fetch,
-  port: 3124
-}, (info) => {
-  console.log(`Servidor corriendo en http://localhost:${info.port}`)
-})
+startTcpServer()

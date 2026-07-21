@@ -1,14 +1,15 @@
 export type MiddlewareVars = {
-    Variables:  {
-        session_cookie: string;
-}
+  Variables: {
+    session_id: string
+  }
 }
 
 export type GenerateInvoiceProps = {
-    invoiceId: string;
-    clientId: string;
-    bookId: string;
-    bookTitle: string;
-    invoiceTotal: number;
-    amountOfBooks: number;
+  invoiceId: string
+  clientId: string
+  bookId: string
+  bookTitle: string
+  invoiceTotalInCents: number
+  unitPriceInCents: number
+  amountOfBooks: number
 }

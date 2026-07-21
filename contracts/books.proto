@@ -1,0 +1,86 @@
+syntax = "proto3";
+package books;
+
+enum Category {
+  CATEGORY_UNSPECIFIED = 0;
+  CATEGORY_FICTION = 1;
+  CATEGORY_FANTASY = 2;
+  CATEGORY_SCIENCE_FICTION = 3;
+  CATEGORY_MYSTERY = 4;
+  CATEGORY_THRILLER = 5;
+  CATEGORY_ROMANCE = 6;
+  CATEGORY_HORROR = 7;
+  CATEGORY_ADVENTURE = 8;
+  CATEGORY_HISTORY = 9;
+  CATEGORY_BIOGRAPHY = 10;
+  CATEGORY_SCIENCE = 11;
+  CATEGORY_TECHNOLOGY = 12;
+  CATEGORY_SELF_HELP = 13;
+  CATEGORY_CHILDREN = 14;
+  CATEGORY_COMICS = 15;
+}
+
+message Book {
+    string id = 1;
+    string synopsis = 2;
+    string title = 3;
+    string author = 4;
+    int64 price_in_cents = 5;
+    int32 stock = 6;
+    repeated Category categories = 7;
+}
+
+message GetAllBooksRequest {
+  string session_id = 1;
+  repeated Category category = 2;
+  optional int64 min_price_in_cents = 3;
+  optional int64 max_price_in_cents = 4;
+}
+
+message GetAllBooksResponse {
+  repeated Book books = 1;
+}
+
+message GetOneBookRequest {
+  string session_id = 1;
+  string book_id = 2;
+}
+
+message GetOneBookResponse {
+  Book book = 1;
+}
+
+message BuyBookRequest {
+  string session_id = 1;
+  string book_id = 2;
+  int32 quantity = 3;
+}
+
+message BuyBookResponse {
+  string invoice_id = 1;
+  string client_id = 2;
+  string book_id = 3;
+  string book_title = 4;
+  int64 invoice_total_in_cents = 5;
+  int32 amount_of_books = 6;
+  string client_email = 7;
+  int32 remaining_stock = 8;
+  int64 unit_price_in_cents = 9;
+}
+
+message RestockBookRequest {
+  string book_id = 1;
+  int32 amount_books = 2;
+}
+
+message RestockBookResponse {
+  string book_title = 1;
+  int32 current_book_amount = 2;
+}
+
+service BookService {
+  rpc GetAllBooks(GetAllBooksRequest) returns (GetAllBooksResponse);
+  rpc GetOneBook(GetOneBookRequest) returns (GetOneBookResponse);
+  rpc BuyBook(BuyBookRequest) returns (BuyBookResponse);
+  rpc RestockBook(RestockBookRequest) returns (RestockBookResponse);
+}

@@ -1,16 +1,16 @@
-import {createMiddleware} from "hono/factory";
-import type {MiddlewareVars} from "../types/middleware-vars.js";
-import { getCookie } from "hono/cookie";
-import { HTTPException } from "hono/http-exception";
+import { createMiddleware } from "hono/factory"
+import { getCookie } from "hono/cookie"
+import { HTTPException } from "hono/http-exception"
+import env from "../helpers/env.js"
+import type { MiddlewareVars } from "../types/middleware-vars.js"
 
+const authMiddleware = createMiddleware<MiddlewareVars>(async (ctx, next) => {
+  const sessionId = getCookie(ctx, env.SESSION_COOKIE_NAME)
+  if (!sessionId) {
+    throw new HTTPException(401, { message: "Sesión no válida. Vuelva a iniciar sesión" })
+  }
+  ctx.set("session_id", sessionId)
+  await next()
+})
 
-const authMiddleware = createMiddleware<MiddlewareVars>(
-    async (ctx, next) => {
-        const sessionCookie = getCookie(ctx, "user_session")
-        if (!sessionCookie) throw new HTTPException(401, { message: "No se pudo validar la sesión, vuelva a iniciar sesión" })
-        ctx.set("session_cookie", sessionCookie)
-        await next()
-    }
-)
-
-export default authMiddleware;
+export default authMiddleware

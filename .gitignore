@@ -12,8 +12,8 @@ invoices/
 node_modules/
 
 # env
-.env
-.env.production
+#.env
+# .env.production
 
 # logs
 logs/
