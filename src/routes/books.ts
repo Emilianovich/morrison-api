@@ -121,7 +121,7 @@ books.get("/", ZodMiddleware("query", querySchema), async (ctx) => {
       minPriceInCents: query.minPrice,
       maxPriceInCents: query.maxPrice,
     }, callback))
-    return ctx.json(response.books.map(mapBook))
+    return ctx.json(response.books.filter(book => book.stock > 0).map(mapBook))
   } catch (error) {
     if (isGrpcServiceError(error)) throw grpcErrorToHttp(error)
     throw error
