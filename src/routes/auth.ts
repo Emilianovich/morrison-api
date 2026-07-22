@@ -50,8 +50,8 @@ auth.post("/login", ZodMiddleware("json", credentialsSchema), async (ctx) => {
     const response = await unaryCall<LoginResponse>((callback) => authGrpcClient.login(input, callback))
     setCookie(ctx, env.SESSION_COOKIE_NAME, response.sessionId, {
       httpOnly: true,
-      sameSite: "Lax",
       secure: env.SESSION_COOKIE_SECURE,
+      sameSite: env.SESSION_COOKIE_SAME_SITE,
       path: "/",
     })
     return ctx.json(`Bienvenido ${response.clientName}`)
@@ -73,7 +73,10 @@ auth.post("/register", ZodMiddleware("json", registerSchema), async (ctx) => {
 auth.post("/logout", authMiddleware, async (ctx) => {
   try {
     await unaryCall<AuthResponse>((callback) => authGrpcClient.logout({ sessionId: ctx.get("session_id") }, callback))
-    deleteCookie(ctx, env.SESSION_COOKIE_NAME, { path: "/" })
+    deleteCookie(ctx, env.SESSION_COOKIE_NAME, {
+      path: "/",
+      secure: env.SESSION_COOKIE_SECURE,
+    })
     return ctx.json("Cierre de sesión exitoso")
   } catch (error) {
     return handle(error)

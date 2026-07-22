@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
+import { cors } from "hono/cors"
 import { HTTPException } from "hono/http-exception"
 import authRoutes from "./routes/auth.js"
 import bookRoutes from "./routes/books.js"
@@ -42,6 +43,16 @@ app.onError((error, ctx) => {
     500,
   )
 })
+
+app.use(
+  "*",
+  cors({
+    origin: env.CORS_ALLOWED_ORIGINS,
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+    credentials: true,
+  }),
+)
 
 app.use(generalMiddleware)
 app.get("/health", (ctx) => ctx.json("API REST en buen estado"))
